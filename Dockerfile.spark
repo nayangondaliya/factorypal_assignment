@@ -1,0 +1,41 @@
+FROM python:3.11-bullseye
+
+# Install JDK, curl, and ca-certificates
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openjdk-17-jdk curl ca-certificates \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables
+ENV SPARK_HOME="/opt/spark"
+ENV JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
+ENV PATH="${JAVA_HOME}/bin:${SPARK_HOME}/bin:${SPARK_HOME}/sbin:${PATH}"
+
+WORKDIR ${SPARK_HOME}
+
+# -------------------------------------------------------------------
+# Download & extract Spark 3.5.7
+# -------------------------------------------------------------------
+RUN curl -sSL https://dlcdn.apache.org/spark/spark-3.5.7/spark-3.5.7-bin-hadoop3.tgz -o spark-3.5.7-bin-hadoop3.tgz \
+    && tar xvzf spark-3.5.7-bin-hadoop3.tgz --directory ${SPARK_HOME} --strip-components 1 \
+    && rm -rf spark-3.5.7-bin-hadoop3.tgz
+
+# -------------------------------------------------------------------
+# Copy the src folder into SPARK_HOME/code
+# -------------------------------------------------------------------
+COPY src ${SPARK_HOME}/code
+COPY requirements.txt ${SPARK_HOME}/code/requirements.txt
+
+# Install Python dependencies from requirements.txt inside SPARK_HOME/code
+RUN pip install --no-cache-dir -r ${SPARK_HOME}/code/requirements.txt
+
+# -------------------------------------------------------------------
+# Ports & Spark master configuration
+# -------------------------------------------------------------------
+ENV SPARK_MASTER_PORT="7077"
+ENV SPARK_MASTER_HOST="spark-master"
+
+# Copy spark-defaults.conf
+COPY ./spark-defaults.conf "${SPARK_HOME}/conf"
+
+ENTRYPOINT ["/bin/bash"]

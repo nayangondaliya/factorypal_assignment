@@ -1,0 +1,8 @@
+# Docker base image with Python
+FROM python:3.9-slim
+
+# Install the necessary Python libraries
+RUN pip install --no-cache-dir kafka-python==2.0.5
+
+# Copy your Python script into the container
+COPY kafka/producer.py /app/producer.py
